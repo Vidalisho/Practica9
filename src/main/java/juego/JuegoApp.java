@@ -1,5 +1,6 @@
 package juego;
 
+//imports de javafx
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -10,6 +11,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+
+//imports de la carpeta de modelo
 import modelo.Arma;
 import modelo.CheckPoint;
 import modelo.ElementoDinamico;
@@ -21,6 +24,7 @@ import modelo.Personaje;
 import modelo.Recompensa;
 import modelo.Utileria;
 
+//imports de java necesarios
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,14 +34,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-/**
- * Juego top-down de arena: destruye obstáculos a disparos, junta recompensas,
- * véndelas para sumar puntos y llega a la meta. Usa las clases del diseño UML.
- */
 public class JuegoApp extends Application {
 
+    //datos de ancho y alto para el fondo
     private static final int ANCHO = 800;
     private static final int ALTO = 600;
+
+    //tamanos de los diferentes objetos del entorno
     private static final int TAM_JUGADOR = 28;
     private static final int TAM_OBSTACULO = 36;
     private static final int TAM_ITEM = 20;
@@ -66,7 +69,7 @@ public class JuegoApp extends Application {
         }
     }
 
-    /** Recompensa tirada en el piso esperando a ser recogida. */
+    //Recompensa tirada en el piso esperando a ser recogida.
     private record Drop(Recompensa recompensa, double x, double y) { }
 
     // Estado del juego

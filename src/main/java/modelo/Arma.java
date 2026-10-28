@@ -1,6 +1,5 @@
 package modelo;
 
-/** Arma que el jugador lleva en su inventario. */
 public class Arma implements Inventariable {
     private final String nombre;
     private final int daño;

@@ -1,6 +1,5 @@
 package modelo;
 
-/** Objeto de utilería móvil (en el juego: botiquines que patrullan el nivel). */
 public class Utileria implements ElementoDinamico {
     private final String nombre;
     private final String descripcion;
@@ -16,10 +15,12 @@ public class Utileria implements ElementoDinamico {
         this.usada = false;
     }
 
+    //getters
     public String getNombre() { return nombre; }
     public String getDescripcion() { return descripcion; }
     public int getPosicionX() { return posicionX; }
     public int getPosicionY() { return posicionY; }
+
     public boolean isUsada() { return usada; }
 
     public void usar() {

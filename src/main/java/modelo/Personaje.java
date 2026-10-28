@@ -1,6 +1,6 @@
 package modelo;
 
-/** Personaje controlado por el jugador. */
+//personaje controlado por el jugador
 public class Personaje implements Destruible, ElementoDinamico {
     private final String nombre;
     private final int vidaMaxima; // extra al diseño: tope para curar()
@@ -31,11 +31,12 @@ public class Personaje implements Destruible, ElementoDinamico {
         vida = Math.max(0, vida - daño);
     }
 
-    /** Extra al diseño: restaura vida sin pasar de la vida máxima. */
+    //restaura vida sin pasar de la vida máxima
     public void curar(int cantidad) {
         vida = Math.min(vidaMaxima, vida + cantidad);
     }
 
+    //metodo implementado de ElementoDinamico
     @Override
     public void mover(String direccion, int distancia) {
         switch (direccion.toUpperCase()) {
@@ -47,6 +48,7 @@ public class Personaje implements Destruible, ElementoDinamico {
         }
     }
 
+    //Metodo implementrado de destruible
     @Override
     public void destruye() {
         vida = 0;

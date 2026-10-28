@@ -1,6 +1,5 @@
 package modelo;
 
-/** Recompensa que se obtiene al destruir obstáculos; vale puntos al venderse. */
 public class Recompensa implements Inventariable {
     private final String nombre;
     private final int valor;
@@ -12,10 +11,12 @@ public class Recompensa implements Inventariable {
         this.tipo = tipo;
     }
 
+    //getters
     public String getNombre() { return nombre; }
     public int getValor() { return valor; }
     public String getTipo() { return tipo; }
 
+    //metodos implementados de inventario
     @Override
     public void registrar() {
         System.out.println("[Inventario] Recompensa registrada: " + this);
