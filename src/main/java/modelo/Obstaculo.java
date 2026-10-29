@@ -1,6 +1,6 @@
 package modelo;
 
-/** Obstáculo fijo que daña al personaje por contacto y puede destruirse. */
+// Obstáculo fijo que daña al personaje por contacto y puede destruirse
 public class Obstaculo implements Destruible {
     private final String nombre;
     private final int daño;

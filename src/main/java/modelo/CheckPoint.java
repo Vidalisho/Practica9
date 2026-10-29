@@ -1,6 +1,6 @@
 package modelo;
 
-/** Punto de control donde reaparece el personaje al morir. */
+// Punto de control donde reaparece el personaje al morir.
 public class CheckPoint {
     private final String nombre;
     private final int posicionX;

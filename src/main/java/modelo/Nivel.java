@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** Nivel del juego: agrupa obstáculos, checkpoints, elementos dinámicos e inventario. */
+//Nivel del juego: agrupa obstáculos, checkpoints, elementos dinámicos e inventario
 public class Nivel {
     private final String nombre;
     private final int numero;
@@ -35,7 +35,7 @@ public class Nivel {
     public void agregarCheckPoint(CheckPoint checkPoint) { checkPoints.add(checkPoint); }
     public void agregarElementoDinamico(ElementoDinamico elemento) { elementosDinamicos.add(elemento); }
 
-    /** Mueve todos los elementos dinámicos del nivel en la misma dirección. */
+    //Mueve todos los elementos dinámicos del nivel en la misma dirección
     public void moverElementosDinamicos(String direccion, int distancia) {
         for (ElementoDinamico elemento : elementosDinamicos) {
             elemento.mover(direccion, distancia);

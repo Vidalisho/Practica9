@@ -46,8 +46,11 @@ public class JuegoApp extends Application {
     private static final int TAM_ITEM = 20;
     private static final int TAM_CHECKPOINT = 24;
     private static final int TAM_UTILERIA = 22;
+
+    //velocidad de movimiento y de las balas
     private static final int VELOCIDAD = 3;
     private static final int VELOCIDAD_BALA = 8;
+
     private static final int META_PUNTOS = 100;
 
     // Tipos de recompensa que sueltan los obstáculos al destruirse
@@ -55,7 +58,7 @@ public class JuegoApp extends Application {
     private static final int[] RECOMPENSA_VALOR = {10, 25, 15};
     private static final String[] RECOMPENSA_TIPO = {"dinero", "joya", "objeto"};
 
-    /** Proyectil en vuelo (solo existe en la capa del juego, no en el diseño UML). */
+    //proyectil en vuelo (solo existe en la capa del juego, no en el diseño UML).
     private static class Bala {
         double x, y, dx, dy, recorrido;
         final Arma arma;
@@ -131,6 +134,7 @@ public class JuegoApp extends Application {
         nivel = new Nivel("Arena de práctica", 1, "Fácil", inventario);
         jugador = new Personaje("Héroe", 100, 60, 60);
 
+        //inicializar los elementos del nivel
         resistencia.clear();
         balas.clear();
         drops.clear();
@@ -143,36 +147,37 @@ public class JuegoApp extends Application {
         puntos = 0;
         muertes = 0;
         victoria = false;
-        avisar("Destruye obstáculos, junta recompensas y véndelas (F) hasta " + META_PUNTOS + " puntos");
+        avisar("Destruye obstáculos y enemigos, junta recompensas y véndelas (F) hasta " + META_PUNTOS + " puntos");
 
-        crearObstaculo("Roca", 5, 200, 120, 30);
+        //crear las posiciones de los obstaculos
+        crearObstaculo("Cofre Trampa", 5, 200, 120, 30);
         crearObstaculo("Púas", 10, 320, 200, 20);
-        crearObstaculo("Barril", 15, 500, 120, 40);
-        crearObstaculo("Roca", 5, 620, 260, 30);
+        crearObstaculo("Demonio", 15, 500, 120, 40);
+        crearObstaculo("Caja Trampa", 5, 620, 260, 30);
         crearObstaculo("Púas", 10, 250, 380, 20);
-        crearObstaculo("Barril", 15, 450, 420, 40);
-        crearObstaculo("Caja", 5, 140, 300, 20);
-        crearObstaculo("Roca", 5, 680, 440, 30);
+        crearObstaculo("Demonio", 15, 450, 420, 40);
+        crearObstaculo("Cofre Trampa", 5, 140, 300, 20);
+        crearObstaculo("Cofre Trampa", 5, 680, 440, 30);
 
+        //crear las posiciones los CheckPoints
         nivel.agregarCheckPoint(new CheckPoint("CP1", 60, 500));
         nivel.agregarCheckPoint(new CheckPoint("CP2", 400, 300));
         nivel.agregarCheckPoint(new CheckPoint("CP3", 720, 60));
 
+        //crear las posiciones los Botiquines
         nivel.agregarElementoDinamico(new Utileria("Botiquín", "Restaura 25 de vida", 300, 530));
         nivel.agregarElementoDinamico(new Utileria("Botiquín", "Restaura 25 de vida", 450, 220));
         nivel.agregarElementoDinamico(new Utileria("Botiquín", "Restaura 25 de vida", 560, 350));
     }
 
+    //metodo para crear los obstaculos y anadirlos a las posiciones asignadas anteriormente
     private void crearObstaculo(String nombre, int daño, int x, int y, int resistenciaInicial) {
         Obstaculo o = new Obstaculo(nombre, daño, x, y);
         nivel.agregarObstaculo(o);
         resistencia.put(o, resistenciaInicial);
     }
 
-    // ------------------------------------------------------------------
-    // Entrada
-    // ------------------------------------------------------------------
-
+    // Entrada del usuario
     /** Acciones de una sola pulsación. */
     private void alPresionar(KeyCode tecla) {
         switch (tecla) {
@@ -221,6 +226,7 @@ public class JuegoApp extends Application {
         }
     }
 
+    //eliminar las recompensas que tengas en el inventario y sumarle los puntos al contador
     private void venderRecompensa() {
         for (Inventariable item : inventario.getItems()) {
             if (item instanceof Recompensa r) {
@@ -236,10 +242,8 @@ public class JuegoApp extends Application {
         avisar("No tienes recompensas para vender");
     }
 
-    // ------------------------------------------------------------------
-    // Lógica por frame
-    // ------------------------------------------------------------------
 
+    // Lógica por frame
     private void actualizar() {
         tick++;
         if (enfriamiento > 0) enfriamiento--;
@@ -343,6 +347,7 @@ public class JuegoApp extends Application {
         }
     }
 
+    //triangular las posiciones de los objetos para ver si estan chocando y hacerle dano al jugador
     private void colisionesConObstaculos() {
         if (invulnerable > 0) {
             return;
@@ -359,6 +364,7 @@ public class JuegoApp extends Application {
         }
     }
 
+    //revisa si el jugador choca con la recompnesa y checa si ay espacio para guardarla
     private void recogerDrops() {
         Iterator<Drop> it = drops.iterator();
         while (it.hasNext()) {
@@ -375,6 +381,7 @@ public class JuegoApp extends Application {
         }
     }
 
+    //revisa si el jugador choca con el checkpoint y si no esta activado lo activa
     private void revisarCheckpoints() {
         for (CheckPoint cp : nivel.getCheckPoints()) {
             if (!cp.isActivado()
@@ -387,6 +394,7 @@ public class JuegoApp extends Application {
         }
     }
 
+    //revisa si el jugador murio asi como su ultimo checkpoint para respawnearlo, si no hay lo respawnea en la posicion original
     private void revisarMuerte() {
         if (jugador.getVida() > 0) {
             return;
@@ -409,6 +417,7 @@ public class JuegoApp extends Application {
         mensajeTimer = 180;
     }
 
+    //se triangulan las posiciones de los objetos para ver si chocan
     private boolean choca(double x1, double y1, double w1, double h1,
                           double x2, double y2, double w2, double h2) {
         return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
@@ -498,6 +507,7 @@ public class JuegoApp extends Application {
         }
     }
 
+    //es el hud que se muestra en pantalla para el jugador
     private void dibujarHud(GraphicsContext g) {
         // Barra de vida
         g.setFill(Color.web("#5a1d1d"));
