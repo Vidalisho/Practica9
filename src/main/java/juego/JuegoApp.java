@@ -1,5 +1,10 @@
 package juego;
 
+//imports para el savestate
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 //imports de javafx
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
@@ -51,6 +56,7 @@ public class JuegoApp extends Application {
     private static final int VELOCIDAD = 3;
     private static final int VELOCIDAD_BALA = 8;
 
+    private static final Path ARCHIVO_GUARDADO = Path.of("partida.sav"); //constante del archivo
     private static final int META_PUNTOS = 100;
 
     // Tipos de recompensa que sueltan los obstáculos al destruirse
@@ -109,10 +115,16 @@ public class JuegoApp extends Application {
 
         stage.setTitle("Práctica 9 - Arena POO");
         stage.setScene(scene);
+        stage.setOnCloseRequest(e -> guardarPartida());
         stage.setResizable(false);
         stage.show();
 
         iniciarNivel();
+        // checar si el archivo existe y si se puede cargar la partida
+        if (Files.exists(ARCHIVO_GUARDADO) && cargarPartida()) {
+            avisar("Sesión anterior recuperada (N = nueva partida)");
+        }
+
         GraphicsContext g = canvas.getGraphicsContext2D();
         new AnimationTimer() {
             @Override
@@ -190,6 +202,9 @@ public class JuegoApp extends Application {
                     iniciarNivel();
                 }
             }
+            case F5 -> guardarPartida(); //casos para el guardado y cargado de partida asi como
+            case F9 -> cargarPartida(); // para iniciar una nueva
+            case N -> iniciarNivel();
             default -> { }
         }
     }
@@ -235,6 +250,7 @@ public class JuegoApp extends Application {
                 avisar("Vendiste " + r.getNombre() + " por " + r.getValor() + " puntos");
                 if (puntos >= META_PUNTOS) {
                     victoria = true;
+                    borrarGuardado(); //borrar el guardado al ganar la partida
                 }
                 return; // se modificó la lista: salir inmediatamente
             }
@@ -423,6 +439,170 @@ public class JuegoApp extends Application {
         return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
     }
 
+    // Guardar partida
+    // este metodo escribe el estado completo del juego en partida.sav una línea por objeto
+    private void guardarPartida() {
+        if (victoria) {
+            avisar("La partida ya terminó: no hay nada que guardar");
+            return;
+        }
+        List<String> lineas = new ArrayList<>();
+
+        // El inventario va primero porque el nivel lo necesita al reconstruirse
+        lineas.add("INVENTARIO|" + inventario.getCapacidadMaxima());
+        for (Inventariable item : inventario.getItems()) {
+            if (item instanceof Arma a) {
+                lineas.add("ARMA|" + a.getNombre() + "|" + a.getDaño() + "|" + a.getAlcance());
+            } else if (item instanceof Recompensa r) {
+                lineas.add("RECOMPENSA|" + r.getNombre() + "|" + r.getValor() + "|" + r.getTipo());
+            }
+        }
+
+        lineas.add("NIVEL|" + nivel.getNombre() + "|" + nivel.getNumero() + "|" + nivel.getDificultad());
+        lineas.add("JUGADOR|" + jugador.getNombre() + "|" + jugador.getVida() + "|" + jugador.getVidaMaxima()
+                + "|" + jugador.getPosicionX() + "|" + jugador.getPosicionY());
+        lineas.add("ESTADO|" + puntos + "|" + muertes + "|" + armaActual + "|" + mirada + "|" + tick);
+        lineas.add("CHECKPOINT_ACTUAL|" + (ultimoCheckpoint == null ? "" : ultimoCheckpoint.getNombre()));
+
+        for (Obstaculo o : nivel.getObstaculos()) {
+            lineas.add("OBSTACULO|" + o.getNombre() + "|" + o.getDaño() + "|" + o.getPosicionX()
+                    + "|" + o.getPosicionY() + "|" + o.isDestruido() + "|" + resistencia.get(o));
+        }
+        for (CheckPoint cp : nivel.getCheckPoints()) {
+            lineas.add("CHECKPOINT|" + cp.getNombre() + "|" + cp.getPosicionX() + "|" + cp.getPosicionY()
+                    + "|" + cp.isActivado());
+        }
+        for (ElementoDinamico e : nivel.getElementosDinamicos()) {
+            if (e instanceof Utileria u) {
+                lineas.add("UTILERIA|" + u.getNombre() + "|" + u.getDescripcion() + "|" + u.getPosicionX()
+                        + "|" + u.getPosicionY() + "|" + u.isUsada());
+            }
+        }
+        for (Drop d : drops) {
+            lineas.add("DROP|" + d.recompensa().getNombre() + "|" + d.recompensa().getValor()
+                    + "|" + d.recompensa().getTipo() + "|" + d.x() + "|" + d.y());
+        }
+
+        try {
+            Files.write(ARCHIVO_GUARDADO, lineas);
+            avisar("Partida guardada");
+        } catch (IOException ex) {
+            avisar("No se pudo guardar: " + ex.getMessage());
+        }
+    }
+
+    // Cargar la partida
+    /* Reconstruye el juego desde partida.sav armando todo en variables locales
+       el estado actual solo se reemplaza si el archivo se leyo completo,
+       para que un archivo danado no corrompa la partida */
+    private boolean cargarPartida() {
+        if (!Files.exists(ARCHIVO_GUARDADO)) {
+            avisar("No hay partida guardada");
+            return false;
+        }
+        try {
+            Inventario inv = null;
+            Nivel niv = null;
+            Personaje jug = null;
+            Map<Obstaculo, Integer> res = new HashMap<>();
+            List<Drop> nuevosDrops = new ArrayList<>();
+            String nombreCheckpoint = "";
+            int pts = 0, mue = 0, arma = 0, tk = 0;
+            String mir = "DERECHA";
+
+            for (String linea : Files.readAllLines(ARCHIVO_GUARDADO)) {
+                String[] p = linea.split("\\|", -1);
+                switch (p[0]) {
+                    case "INVENTARIO" -> inv = new Inventario(Integer.parseInt(p[1]));
+                    case "ARMA" -> inv.agregarItem(new Arma(p[1], Integer.parseInt(p[2]), Double.parseDouble(p[3])));
+                    case "RECOMPENSA" -> inv.agregarItem(new Recompensa(p[1], Integer.parseInt(p[2]), p[3]));
+                    case "NIVEL" -> niv = new Nivel(p[1], Integer.parseInt(p[2]), p[3], inv);
+                    case "JUGADOR" -> {
+                        int max = Integer.parseInt(p[3]);
+                        jug = new Personaje(p[1], max, Integer.parseInt(p[4]), Integer.parseInt(p[5]));
+                        jug.recibirDaño(max - Integer.parseInt(p[2])); // deja la vida como estaba
+                    }
+                    case "ESTADO" -> {
+                        pts = Integer.parseInt(p[1]);
+                        mue = Integer.parseInt(p[2]);
+                        arma = Integer.parseInt(p[3]);
+                        mir = p[4];
+                        tk = Integer.parseInt(p[5]);
+                    }
+                    case "CHECKPOINT_ACTUAL" -> nombreCheckpoint = p[1];
+                    case "OBSTACULO" -> {
+                        Obstaculo o = new Obstaculo(p[1], Integer.parseInt(p[2]),
+                                Integer.parseInt(p[3]), Integer.parseInt(p[4]));
+                        if (Boolean.parseBoolean(p[5])) {
+                            o.destruye();
+                        }
+                        niv.agregarObstaculo(o);
+                        res.put(o, Integer.parseInt(p[6]));
+                    }
+                    case "CHECKPOINT" -> {
+                        CheckPoint cp = new CheckPoint(p[1], Integer.parseInt(p[2]), Integer.parseInt(p[3]));
+                        if (Boolean.parseBoolean(p[4])) {
+                            cp.activar();
+                        }
+                        niv.agregarCheckPoint(cp);
+                    }
+                    case "UTILERIA" -> {
+                        Utileria u = new Utileria(p[1], p[2], Integer.parseInt(p[3]), Integer.parseInt(p[4]));
+                        if (Boolean.parseBoolean(p[5])) {
+                            u.usar();
+                        }
+                        niv.agregarElementoDinamico(u);
+                    }
+                    case "DROP" -> nuevosDrops.add(new Drop(
+                            new Recompensa(p[1], Integer.parseInt(p[2]), p[3]),
+                            Double.parseDouble(p[4]), Double.parseDouble(p[5])));
+                    default -> { }
+                }
+            }
+            if (inv == null || niv == null || jug == null) {
+                throw new IllegalStateException("Archivo incompleto");
+            }
+
+            // Si salio bien ahora se reemplaza el estado del juego
+            inventario = inv;
+            nivel = niv;
+            jugador = jug;
+            resistencia.clear();
+            resistencia.putAll(res);
+            drops.clear();
+            drops.addAll(nuevosDrops);
+            balas.clear();
+            puntos = pts;
+            muertes = mue;
+            armaActual = arma;
+            mirada = mir;
+            tick = tk;
+            enfriamiento = 0;
+            invulnerable = 0;
+            victoria = false;
+            ultimoCheckpoint = null;
+            for (CheckPoint cp : nivel.getCheckPoints()) {
+                if (cp.getNombre().equals(nombreCheckpoint)) {
+                    ultimoCheckpoint = cp;
+                }
+            }
+            avisar("Partida cargada");
+            return true;
+        } catch (IOException | RuntimeException ex) {
+            avisar("El archivo de guardado está dañado: no se pudo cargar");
+            return false;
+        }
+    }
+
+    // Borrar el guardado
+    private void borrarGuardado() {
+        try {
+            Files.deleteIfExists(ARCHIVO_GUARDADO);
+        } catch (IOException ex) {
+            System.out.println("No se pudo borrar el guardado: " + ex.getMessage());
+        }
+    }
+
     // Dibujo
     private void dibujar(GraphicsContext g) {
         // Piso con cuadrícula
@@ -529,6 +709,8 @@ public class JuegoApp extends Application {
         g.setFont(Font.font(11));
         g.fillText("WASD/Flechas mover | ESPACIO disparar | Q cambiar arma | E usar botiquín | F vender | I estado en consola",
                 20, ALTO - 62);
+        g.fillText("F5 guardar | F9 cargar | N nueva partida", 20, ALTO - 74); //mostrar las teclas para la partida
+                                                                                            // cargar, guardar, nueva partida
 
         // Ranuras del inventario
         List<Inventariable> items = inventario.getItems();
