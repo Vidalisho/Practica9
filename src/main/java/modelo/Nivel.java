@@ -36,22 +36,6 @@ public class Nivel {
     public void agregarCheckPoint(CheckPoint checkPoint) { checkPoints.add(checkPoint); }
     public void agregarElementoDinamico(ElementoDinamico elemento) { elementosDinamicos.add(elemento); }
 
-    //Mueve todos los elementos dinámicos del nivel en la misma dirección
-    public void moverElementosDinamicos(String direccion, int distancia) {
-        for (ElementoDinamico elemento : elementosDinamicos) {
-            elemento.mover(direccion, distancia);
-        }
-    }
-
-    public void moverElementosDinamicosRan(int reloj) {
-
-        for (ElementoDinamico elemento : elementosDinamicos) {
-            String direccion=(reloj%240)<120 ? "DERECHA" : "IZQUIERDA";
-
-            elemento.mover(direccion, 1);
-        }
-    }
-
     public void mostrarEstado() {
         long vivos = obstaculos.stream().filter(o -> !o.isDestruido()).count();
         long activados = checkPoints.stream().filter(CheckPoint::isActivado).count();
