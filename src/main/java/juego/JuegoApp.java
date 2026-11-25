@@ -64,7 +64,7 @@ public class JuegoApp extends Application {
     private static final int[] RECOMPENSA_VALOR = {10, 25, 15};
     private static final String[] RECOMPENSA_TIPO = {"dinero", "joya", "objeto"};
 
-    //proyectil en vuelo (solo existe en la capa del juego, no en el diseño UML).
+    //proyectil en vuelo
     private static class Bala {
         double x, y, dx, dy, recorrido;
         final Arma arma;
@@ -113,7 +113,7 @@ public class JuegoApp extends Application {
         });
         scene.setOnKeyReleased(e -> teclas.remove(e.getCode()));
 
-        stage.setTitle("Práctica 9 - Arena POO");
+        stage.setTitle("Práctica 9 - Juego JavaFx");
         stage.setScene(scene);
         stage.setOnCloseRequest(e -> guardarPartida());
         stage.setResizable(false);
@@ -139,12 +139,13 @@ public class JuegoApp extends Application {
 
     // Construcción del nivel
     private void iniciarNivel() {
-        inventario = new Inventario(6);
-        inventario.agregarItem(new Arma("Pistola", 10, 250));
+        inventario = new Inventario(7);
+        inventario.agregarItem(new Arma("Pistola", 10, 200));
         inventario.agregarItem(new Arma("Escopeta", 25, 120));
+        inventario.agregarItem(new Arma("Rifle", 20, 250));
 
-        nivel = new Nivel("Arena de práctica", 1, "Fácil", inventario);
-        jugador = new Personaje("Héroe", 100, 60, 60);
+        nivel = new Nivel("Arena de prueba", 1, "Fácil", inventario);
+        jugador = new Personaje("Jugador", 100, 60, 60);
 
         //inicializar los elementos del nivel
         resistencia.clear();
@@ -159,7 +160,8 @@ public class JuegoApp extends Application {
         puntos = 0;
         muertes = 0;
         victoria = false;
-        avisar("Destruye obstáculos y enemigos, junta recompensas y véndelas (F) hasta " + META_PUNTOS + " puntos");
+        avisar("Ganas juntando recompensas y vendiendolas (F) hasta juntar " + META_PUNTOS + " puntos " +
+                "o destruyendo todos los obstaculos");
 
         //crear las posiciones de los obstaculos
         crearObstaculo("Cofre Trampa", 5, 200, 120, 30);
@@ -172,7 +174,7 @@ public class JuegoApp extends Application {
         crearObstaculo("Cofre Trampa", 5, 680, 440, 30);
 
         //crear las posiciones los CheckPoints
-        nivel.agregarCheckPoint(new CheckPoint("CP1", 60, 500));
+        nivel.agregarCheckPoint(new CheckPoint("CP1", 60, 400));
         nivel.agregarCheckPoint(new CheckPoint("CP2", 400, 300));
         nivel.agregarCheckPoint(new CheckPoint("CP3", 720, 60));
 
@@ -190,11 +192,11 @@ public class JuegoApp extends Application {
     }
 
     // Entrada del usuario
-    /** Acciones de una sola pulsación. */
+    // Acciones de una sola pulsación.
     private void alPresionar(KeyCode tecla) {
         switch (tecla) {
             case Q -> cambiarArma();
-            case E -> usarUtileria();
+            case E -> usarBotiquin();
             case F -> venderRecompensa();
             case I -> nivel.mostrarEstado(); // imprime el estado en consola
             case ENTER -> {
@@ -202,6 +204,7 @@ public class JuegoApp extends Application {
                     iniciarNivel();
                 }
             }
+            case K -> jugador.destruye();
             case F5 -> guardarPartida(); //casos para el guardado y cargado de partida asi como
             case F9 -> cargarPartida(); // para iniciar una nueva
             case N -> iniciarNivel();
@@ -228,7 +231,7 @@ public class JuegoApp extends Application {
         avisar("Arma: " + armas.get(armaActual).getNombre());
     }
 
-    private void usarUtileria() {
+    private void usarBotiquin() {
         for (ElementoDinamico e : nivel.getElementosDinamicos()) {
             if (e instanceof Utileria u && !u.isUsada()
                     && choca(jugador.getPosicionX(), jugador.getPosicionY(), TAM_JUGADOR, TAM_JUGADOR,
@@ -250,7 +253,6 @@ public class JuegoApp extends Application {
                 avisar("Vendiste " + r.getNombre() + " por " + r.getValor() + " puntos");
                 if (puntos >= META_PUNTOS) {
                     victoria = true;
-                    borrarGuardado(); //borrar el guardado al ganar la partida
                 }
                 return; // se modificó la lista: salir inmediatamente
             }
@@ -272,7 +274,8 @@ public class JuegoApp extends Application {
         }
 
         // Los botiquines patrullan 120 px a la derecha y 120 px a la izquierda
-        nivel.moverElementosDinamicos((tick % 240 < 120) ? "DERECHA" : "IZQUIERDA", 1);
+        //nivel.moverElementosDinamicos((tick % 240 < 120) ? "DERECHA" : "IZQUIERDA", 1);
+        nivel.moverElementosDinamicosRan(tick);
 
         actualizarBalas();
         colisionesConObstaculos();
@@ -310,7 +313,7 @@ public class JuegoApp extends Application {
             return;
         }
         Arma arma = armas.get(armaActual % armas.size());
-        double cx = jugador.getPosicionX() + TAM_JUGADOR / 2.0;
+        double cx = jugador.getPosicionX() + TAM_JUGADOR / 2.0; // Calcula el centro del jugador
         double cy = jugador.getPosicionY() + TAM_JUGADOR / 2.0;
         double dx = 0;
         double dy = 0;
@@ -357,9 +360,14 @@ public class JuegoApp extends Application {
         resistencia.put(o, restante);
         if (restante <= 0) {
             o.destruye();
-            int i = azar.nextInt(RECOMPENSA_NOMBRE.length);
-            Recompensa r = new Recompensa(RECOMPENSA_NOMBRE[i], RECOMPENSA_VALOR[i], RECOMPENSA_TIPO[i]);
+            int rndom = azar.nextInt(RECOMPENSA_NOMBRE.length);
+            Recompensa r = new Recompensa(RECOMPENSA_NOMBRE[rndom], RECOMPENSA_VALOR[rndom], RECOMPENSA_TIPO[rndom]);
             drops.add(new Drop(r, o.getPosicionX() + 8, o.getPosicionY() + 8));
+
+            // Se acaba la partida si destruyes todods los obstaculos
+            if (nivel.getObstaculos().stream().allMatch(Obstaculo::isDestruido)) {
+                victoria = true;
+            }
         }
     }
 
@@ -424,7 +432,6 @@ public class JuegoApp extends Application {
         }
         jugador.setPosicion(x, y);
         jugador.curar(jugador.getVidaMaxima());
-        invulnerable = 90;
         avisar("Moriste: reapareces en el último checkpoint");
     }
 
@@ -433,7 +440,7 @@ public class JuegoApp extends Application {
         mensajeTimer = 180;
     }
 
-    //se triangulan las posiciones de los objetos para ver si chocan
+    // se comparan los rectángulos de los objetos para ver si se traslapan
     private boolean choca(double x1, double y1, double w1, double h1,
                           double x2, double y2, double w2, double h2) {
         return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;

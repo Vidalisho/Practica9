@@ -3,6 +3,7 @@ package modelo;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 //Nivel del juego: agrupa obstáculos, checkpoints, elementos dinámicos e inventario
 public class Nivel {
@@ -39,6 +40,15 @@ public class Nivel {
     public void moverElementosDinamicos(String direccion, int distancia) {
         for (ElementoDinamico elemento : elementosDinamicos) {
             elemento.mover(direccion, distancia);
+        }
+    }
+
+    public void moverElementosDinamicosRan(int reloj) {
+
+        for (ElementoDinamico elemento : elementosDinamicos) {
+            String direccion=(reloj%240)<120 ? "DERECHA" : "IZQUIERDA";
+
+            elemento.mover(direccion, 1);
         }
     }
 
